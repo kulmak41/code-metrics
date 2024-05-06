@@ -9,10 +9,10 @@ import java.util.List;
 import java.util.Map;
 
 public class MetricsVisitor extends VoidVisitorAdapter<Void> {
-    private Map<MethodDeclaration, Integer> complexityCounter;
+    private Map<MethodDeclaration, Integer> methodComplexity;
 
     public MetricsVisitor() {
-        this.complexityCounter = new HashMap<>();
+        this.methodComplexity = new HashMap<>();
     }
 
     @Override
@@ -24,17 +24,17 @@ public class MetricsVisitor extends VoidVisitorAdapter<Void> {
         complexity += md.findAll(com.github.javaparser.ast.stmt.WhileStmt.class).size();
         complexity += md.findAll(com.github.javaparser.ast.stmt.ForEachStmt.class).size();
 
-        complexityCounter.put(md, complexity);
+        methodComplexity.put(md, complexity);
 
         super.visit(md, arg);
     }
 
-    public List<String> worstComplexityMethods() {
-        return complexityCounter.entrySet()
+    public List<MethodComplexity> highestComplexityMethods() {
+        return methodComplexity.entrySet()
                 .stream()
-                .sorted(Comparator.comparing(x -> ((Map.Entry<MethodDeclaration, Integer>) x).getValue()).reversed())
+                .map(x -> new MethodComplexity(x.getKey(), x.getValue()))
+                .sorted(Comparator.comparing(x -> ((MethodComplexity)x).complexity()).reversed())
                 .limit(3)
-                .map(x -> x.getKey().getNameAsString())
                 .toList();
     }
 
