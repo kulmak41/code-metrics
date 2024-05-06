@@ -8,11 +8,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
 public class MetricsVisitor extends VoidVisitorAdapter<Void> {
-    private Map<MethodDeclaration, Integer> methodComplexity;
+    private final Map<MethodDeclaration, Integer> methodComplexity;
+    private static final String camelCasePattern = "[a-z][A-Za-z\\d]*";
+    private int methodsNumber;
+    private int namingViolations;
 
     public MetricsVisitor() {
         this.methodComplexity = new HashMap<>();
+        this.methodsNumber = 0;
+        this.namingViolations = 0;
     }
 
     @Override
@@ -23,19 +29,26 @@ public class MetricsVisitor extends VoidVisitorAdapter<Void> {
         complexity += md.findAll(com.github.javaparser.ast.stmt.ForStmt.class).size();
         complexity += md.findAll(com.github.javaparser.ast.stmt.WhileStmt.class).size();
         complexity += md.findAll(com.github.javaparser.ast.stmt.ForEachStmt.class).size();
-
         methodComplexity.put(md, complexity);
+
+        ++methodsNumber;
+        if (!md.getNameAsString().matches(camelCasePattern)) {
+            ++namingViolations;
+        }
 
         super.visit(md, arg);
     }
 
-    public List<MethodComplexity> highestComplexityMethods() {
+    public List<MethodComplexity> highestComplexityMethods(int count) {
         return methodComplexity.entrySet()
                 .stream()
                 .map(x -> new MethodComplexity(x.getKey(), x.getValue()))
                 .sorted(Comparator.comparing(x -> ((MethodComplexity)x).complexity()).reversed())
-                .limit(3)
+                .limit(count)
                 .toList();
     }
 
+    public int namingViolationsPercentage() {
+        return (int)Math.round(100.0 * namingViolations / methodsNumber);
+    }
 }
